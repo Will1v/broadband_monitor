@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS ping_results (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    router_success BOOLEAN NOT NULL,
+    internet_success BOOLEAN NOT NULL
+);

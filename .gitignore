@@ -1,5 +1,5 @@
 # Ignore actual secrets and config files
-config/config.yml
+config/config.yaml
 
 # Python 
 __pycache__/
