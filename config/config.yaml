@@ -1,0 +1,5 @@
+router_ip: "<ip to the router>"
+internet_address: "google.com"
+database: 
+    file_path: "~/broadband_monitor/database/broadband_monitor.sqlite3"
+    build_sql_file_path: "~/broadband_monitor/database/init_db.sql"
