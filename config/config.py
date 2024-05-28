@@ -39,4 +39,4 @@ class Config:
 
 
 # Load the configuration when the module is imported
-config = Config("config/config.yaml")
+config = Config(os.path.expanduser("~/broadband_monitor/config/config.yaml"))

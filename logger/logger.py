@@ -5,6 +5,7 @@ from broadband_monitor.config import config
 
 logs_dir = "/var/log/broadband_monitor"
 
+
 def configure_logger():
     if not os.path.exists(logs_dir):
         os.makedirs(logs_dir)

@@ -1,5 +1,7 @@
+#!/usr/bin/python
+
 import subprocess
-import os
+import os, sys
 import json
 from logger import get_logger
 from broadband_monitor.config import config
@@ -7,11 +9,17 @@ import time
 from datetime import datetime
 import sqlite3
 
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 logger = get_logger(__name__)
 
 
 def ping_host(host):
-    result = subprocess.run(['ping', '-c', '4', host], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    result = subprocess.run(
+        ["ping", "-c", "4", host],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
     success = True
     if result.returncode == 0:
         logger.debug(f"Ping to {host} was successful.")
@@ -37,7 +45,9 @@ def main():
     # Init DB
     conn = init_db()
 
-    logger.info(f"Pinging router at {router_ip} and internet address at {internet_address}")
+    logger.info(
+        f"Pinging router at {router_ip} and internet address at {internet_address}"
+    )
     while True:
         router_status = ping_host(router_ip)
         if router_status:
@@ -47,16 +57,19 @@ def main():
 
         internet_status = ping_host(internet_address)
         if internet_status:
-            internet_ok_counter += 1 
+            internet_ok_counter += 1
         else:
             internet_nok_counter += 1
 
         counter += 1
         register_status_to_db(router_status, internet_status)
-        
+
         if (counter - 1) % counter_modulo == 0:
-            logger.info(f"{counter} pings run. Router: {router_ok_counter/counter * 100}% success (OK: {router_ok_counter} / KO: {router_nok_counter}) | Internet: {internet_ok_counter/counter * 100}% success (OK: {internet_ok_counter} / KO: {internet_nok_counter})")
+            logger.info(
+                f"{counter} pings run. Router: {router_ok_counter/counter * 100}% success (OK: {router_ok_counter} / KO: {router_nok_counter}) | Internet: {internet_ok_counter/counter * 100}% success (OK: {internet_ok_counter} / KO: {internet_nok_counter})"
+            )
         time.sleep(interval_in_s)
+
 
 def register_status_to_db(router_status, internet_status):
     conn = get_db_connection()
@@ -78,6 +91,7 @@ def init_db():
         logger.exception(f"Error: SQL file not found: {e}")
     logger.info("DB initialized...")
 
+
 def get_db_connection():
     # Connect to DB
     conn = None
@@ -89,6 +103,7 @@ def get_db_connection():
         logger.exception(f"Error connecting to database: {e}")
     except FileNotFoundError as e:
         logger.exception(f"Error: DB file not found: {e}")
+
 
 if __name__ == "__main__":
     main()
