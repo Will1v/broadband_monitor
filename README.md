@@ -1,0 +1,1 @@
+Tiny util to ping router + google.com on a regular basis to see prove short, sporadic and intermitent drops in broadband connection which are otherwise hard to spot.
