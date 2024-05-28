@@ -1,0 +1,16 @@
+# Ignore actual secrets and config files
+config/config.yml
+
+# Python 
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+
+# VSCode
+.vscode
+
+# Database
+*.sqlite3
+*.sqlite3-journal
