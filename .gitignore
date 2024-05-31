@@ -14,3 +14,6 @@ __pycache__/
 # Database
 *.sqlite3
 *.sqlite3-journal
+
+# .out files
+*.out
