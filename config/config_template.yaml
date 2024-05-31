@@ -1,5 +1,8 @@
 router_ip: "<ip to the router>"
+router_alias: "Router"
 internet_address: "google.com"
+internet_address_alias: "google.com"
 database: 
     file_path: "~/broadband_monitor/database/broadband_monitor.sqlite3"
     build_sql_file_path: "~/broadband_monitor/database/init_db.sql"
+ping_interval_in_seconds: 5
