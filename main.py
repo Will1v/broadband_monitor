@@ -81,14 +81,14 @@ def main():
         # TODO: Duplicate code. Refactor to make just one function to both router and internet (and any other target)
         if router_status:
             router_ok_counter += 1
-            router_min, router_max, router_avg = router_status
+            router_min, router_avg, router_max = router_status
         else:
             router_nok_counter += 1
 
         internet_status = ping_host(internet_address)
         if internet_status:
             internet_ok_counter += 1
-            internet_min, internet_max, internet_avg = internet_status
+            internet_min, internet_avg, internet_max = internet_status
         else:
             internet_nok_counter += 1
 
