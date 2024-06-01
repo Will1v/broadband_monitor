@@ -1,6 +1,6 @@
 router_ip: "<ip to the router>"
 router_alias: "Router"
-internet_address: "google.com"
+internet_address: "8.8.8.8"
 internet_address_alias: "google.com"
 database: 
     file_path: "~/broadband_monitor/database/broadband_monitor.sqlite3"
