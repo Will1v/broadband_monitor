@@ -32,3 +32,12 @@ crontab -e
 ``` sh
 @reboot sleep 60; <path to project>/broadband_monitor/broadband_monitor.sh
 ```
+
+
+# Grafana dashboard
+
+Using Grafana can be a nice way to visualise the collected stats. 
+
+I did this on a Raspberry Pi 4 which runw both Grafana and broadband_monitor to continuously monitor the state of my broadband:
+
+![broadband_monitor_grafana_dashboard](https://github.com/Will1v/broadband_monitor/assets/24796480/21db05d9-8687-4d6b-adc1-a95dd26dccec)
