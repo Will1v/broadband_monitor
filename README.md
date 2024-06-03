@@ -20,6 +20,8 @@ pip install -r requirements.txt
 1. Edit `./config/config_template.yaml` and set your router's IP address instead of `<ip to the router>`.
 2. Rename `./config/config_template.yaml` to `./config/config.yaml`
 
+**Note**: it is recommended to use a `ping_interval_in_seconds` of at least `10` to allow for the pings and DB write to happen.
+
 ## Crontab
 
 You can crontab the run on reboot to constantly monitor. It can be best to allow a bit of a delay after reboot:

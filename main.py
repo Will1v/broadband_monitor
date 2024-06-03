@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
 import subprocess
+import asyncio
 import os, sys
-import json
 from logger import get_logger
 from broadband_monitor.config import config
 import time
@@ -11,11 +11,12 @@ import sqlite3
 import re
 from typing import Tuple, Union
 
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 logger = get_logger(__name__)
 
 
-def ping_host(host: str):
+async def ping_host(host: str):
     result = subprocess.run(
         ["ping", "-c", "4", host],
         stdout=subprocess.PIPE,
@@ -47,7 +48,7 @@ def extract_rtt_stats(
         return None
 
 
-def main():
+async def main():
     # Initialize variables...
     counter = 0
     router_ok_counter = 0
@@ -77,18 +78,20 @@ def main():
         f"Pinging router at {router_ip} and internet address at {internet_address}"
     )
     while True:
-        router_status = ping_host(router_ip)
+        start_time = time.time()
+        router_status, internet_status = await asyncio.gather(
+            ping_host(router_ip), ping_host(internet_address)
+        )
         # TODO: Duplicate code. Refactor to make just one function to both router and internet (and any other target)
         if router_status:
             router_ok_counter += 1
-            router_min, router_max, router_avg = router_status
+            router_min, router_avg, router_max = router_status
         else:
             router_nok_counter += 1
 
-        internet_status = ping_host(internet_address)
         if internet_status:
             internet_ok_counter += 1
-            internet_min, internet_max, internet_avg = internet_status
+            internet_min, internet_avg, internet_max = internet_status
         else:
             internet_nok_counter += 1
 
@@ -112,7 +115,14 @@ def main():
             logger.info(
                 f"{counter} pings run. Router: {router_ok_counter/counter * 100}% success (OK: {router_ok_counter} / KO: {router_nok_counter}) | Internet: {internet_ok_counter/counter * 100}% success (OK: {internet_ok_counter} / KO: {internet_nok_counter})"
             )
-        time.sleep(interval_in_s)
+        elapsed_time = time.time() - start_time
+        if interval_in_s - elapsed_time <= 0:
+            logger.warning(
+                f"One cycle took {elapsed_time}s, interval configured of {interval_in_s}s is likely too short. Consider increasing it."
+            )
+        else:
+            logger.debug(f"Loop took {elapsed_time}s")
+            await asyncio.sleep(interval_in_s - elapsed_time)
 
 
 def register_target(target: str, target_alias: str) -> int:
@@ -177,4 +187,4 @@ def get_db_connection():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
