@@ -2,6 +2,9 @@
 
 Tiny util to ping router + google.com on a regular basis to see prove short, sporadic and intermitent drops in broadband connection which are otherwise hard to spot.
 
+![image](https://github.com/Will1v/broadband_monitor/assets/24796480/5d5b927e-de4f-447e-acde-9eeb70c89e70)
+
+
 ## Context
 
 I've been experiencing brief and interminent outages on my broadband. 
