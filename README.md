@@ -46,3 +46,39 @@ Using Grafana can be a nice way to visualise the collected stats.
 I did this on a Raspberry Pi 4 which runw both Grafana and broadband_monitor to continuously monitor the state of my broadband:
 
 ![broadband_monitor_grafana_dashboard](https://github.com/Will1v/broadband_monitor/assets/24796480/3f543fe2-9289-4959-8362-8eedeb9df17f)
+
+# Limitations
+
+Because Grafana doens't support read-only databases, you need to give the sqlite3 file write permissions to the `grafana` user.
+This tends to lock the database and get the script to crash.
+To get around this, you can enable [Write Ahead Logging (WAL)](https://grafana.com/docs/loki/latest/operations/storage/wal/)
+
+Alternatively, you may want to switch to another database (postrgres, mysql,..).
+
+## Configuring WAL
+
+1. Enable WAL in Grafana:
+- Edit `grafana.ini`:
+``` sh
+ sudo vi /etc/grafana/grafana.ini
+```
+- Set `wal` to `true`:
+``` sh
+# For "sqlite3" only. Enable/disable Write-Ahead Logging, https://sqlite.org/wal.html. Default is false.
+;wal = true
+```
+2. In sqlite3, connect and enable WAL:
+``` sh
+# Connect to the DB
+sqlite3 <database_name>
+
+# Enable WAL mode
+sqlite> PRAGMA journal_mode = WAL;
+wal
+
+# Verify the change
+sqlite> PRAGMA journal_mode;
+wal
+```
+3. Restart Grafana 
+
