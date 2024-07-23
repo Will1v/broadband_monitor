@@ -7,7 +7,7 @@ from logger import get_logger
 from broadband_monitor.config import config
 import time
 from datetime import datetime
-import sqlite3
+import psycopg2
 import re
 from typing import Tuple, Union
 
@@ -15,6 +15,12 @@ from typing import Tuple, Union
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 logger = get_logger(__name__)
 
+db_conn = psycopg2.connect(database=config.database.db_name,
+                    host=config.database.db_host,
+                    user=config.database.db_user,
+                    password=config.database.password,
+                    port=config.database.db_port)
+db_conn.autocommit = True
 
 async def ping_host(host: str):
     result = subprocess.run(
@@ -126,16 +132,17 @@ async def main():
 
 
 def register_target(target: str, target_alias: str) -> int:
-    conn = get_db_connection()
-    get_id_sql_query = "SELECT target_id FROM targets WHERE ip_or_url = ?"
-    res = conn.cursor().execute(get_id_sql_query, [target]).fetchone()
+    cur = db_conn.cursor()
+    get_id_sql_query = "SELECT target_id FROM targets WHERE ip_or_url = %s"
+    cur.execute(cur.mogrify(get_id_sql_query, [target]))
+    res = cur.fetchone()
     if not res:
-        targets_sql_query = (
-            "INSERT OR REPLACE INTO targets (ip_or_url, alias) VALUES (?, ?)"
-        )
-        conn.cursor().execute(targets_sql_query, [target, target_alias])
-        conn.commit()
-        res = conn.cursor().execute(get_id_sql_query, [target]).fetchone()
+        targets_sql_query = ("INSERT INTO targets (ip_or_url, alias) VALUES (%s, %s) ON CONFLICT (ip_or_url) DO UPDATE SET alias = EXCLUDED.alias")
+        full_query = cur.mogrify(targets_sql_query, [target, target_alias])
+
+        cur.execute(full_query)
+        cur.execute(get_id_sql_query, [target])
+        res = cur.fetchone()
     return res[0]
 
 
@@ -146,44 +153,28 @@ def register_status_to_db(
     rtt_avg: Union[float, None],
     target_id: int,
 ):
-    conn = get_db_connection()
+    cur = db_conn.cursor()
     # Insert ping status
     sql_status_query = (
-        "INSERT INTO ping_results (timestamp, target_id, success) VALUES (?, ?, ?)"
+        "INSERT INTO ping_results (timestamp, target_id, success) VALUES (%s, %s, %s)"
     )
-    conn.cursor().execute(sql_status_query, [datetime.now(), target_id, target_status])
-    sql_stats_query = "INSERT INTO ping_stats (timestamp, target_id, rtt_min, rtt_max, rtt_avg) VALUES (?, ?, ?, ?, ?)"
-    conn.cursor().execute(
-        sql_stats_query, [datetime.now(), target_id, rtt_min, rtt_max, rtt_avg]
-    )
-    conn.commit()
+    cur.execute(cur.mogrify(sql_status_query, [datetime.now(), target_id, target_status]))
+    sql_stats_query = "INSERT INTO ping_stats (timestamp, target_id, rtt_min, rtt_max, rtt_avg) VALUES (%s, %s, %s, %s, %s)"
+    cur.execute(cur.mogrify(sql_stats_query, [datetime.now(), target_id, rtt_min, rtt_max, rtt_avg]))
 
 
 def init_db():
-    conn = get_db_connection()
     build_db_path = os.path.expanduser(config.database.build_sql_file_path)
     try:
         with open(build_db_path, "r") as file:
             sql_script = file.read()
-        conn.executescript(sql_script)
-    except sqlite3.Error as e:
-        logger.exception(f"Error executing build DB SQL script: {e}")
+        with db_conn.cursor() as cursor:
+            cursor.execute(sql_script)
+        logger.info(f"Executed build DB SQL script from {build_db_path} successfully")
     except FileNotFoundError as e:
         logger.exception(f"Error: SQL file not found: {e}")
-    logger.info("DB initialized...")
 
 
-def get_db_connection():
-    # Connect to DB
-    conn = None
-    db_file = os.path.expanduser(config.database.file_path)
-    try:
-        conn = sqlite3.connect(db_file)
-        return conn
-    except sqlite3.Error as e:
-        logger.exception(f"Error connecting to database: {e}")
-    except FileNotFoundError as e:
-        logger.exception(f"Error: DB file not found: {e}")
 
 
 if __name__ == "__main__":
