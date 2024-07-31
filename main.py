@@ -9,7 +9,7 @@ import time
 from datetime import datetime
 import psycopg2
 import re
-from typing import Tuple, Union
+from typing import Tuple, Union, List
 
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -53,6 +53,15 @@ def extract_rtt_stats(
         logger.error("Could not parse the ping output.")
         return None
 
+class Target:
+    def __init__(self, ip:str , alias: str):
+        self.ip = ip
+        self.alias = alias
+        self.ok_counter = 0
+        self.nok_counter = 0
+        self.db_id = None
+        self.ping_status = None
+
 
 async def main():
     # Initialize variables...
@@ -65,61 +74,45 @@ async def main():
     counter_modulo = (
         60 * 60 / interval_in_s
     )  # Will log a heartbreat with some stats every hour
-    router_ip, router_alias, internet_address, internet_address_alias = (
-        config.router_ip,
-        config.router_alias,
-        config.internet_address,
-        config.internet_address_alias,
-    )
 
+    targets: List[Target] = []
+    targets.append(Target(config.router_ip, config.router_alias))
+    targets.append(Target(config.internet_address, config.internet_alias))
+    targets.append(Target(config.client_ip, config.client_alias))
+    # Add as many targets as necessary
     # Init DB
     conn = init_db()
 
-    router_id = register_target(config.router_ip, config.router_alias)
-    internet_id = register_target(
-        config.internet_address, config.internet_address_alias
-    )
+    for target in targets:
+        target.db_id = register_target(target.ip, target.alias)
 
-    logger.info(
-        f"Pinging router at {router_ip} and internet address at {internet_address}"
-    )
     while True:
         start_time = time.time()
-        router_status, internet_status = await asyncio.gather(
-            ping_host(router_ip), ping_host(internet_address)
+        ping_statuses = await asyncio.gather(
+            *[ping_host(target.ip) for target in targets]
         )
-        # TODO: Duplicate code. Refactor to make just one function to both router and internet (and any other target)
-        if router_status:
-            router_ok_counter += 1
-            router_min, router_avg, router_max = router_status
-        else:
-            router_nok_counter += 1
 
-        if internet_status:
-            internet_ok_counter += 1
-            internet_min, internet_avg, internet_max = internet_status
-        else:
-            internet_nok_counter += 1
-
+        for i in range(len(targets)):
+            targets[i].ping_status = ping_statuses[i]
+        for target in targets:
+            successful_ping = False
+            if target.ping_status:
+                successful_ping = True
+                target.ok_counter += 1
+                rtt_min, rtt_avg, rtt_max = target.ping_status
+            else:
+                target.nok_counter += 1
+            register_status_to_db(
+                target_status=successful_ping,
+                rtt_min=rtt_min,
+                rtt_max=rtt_max,
+                rtt_avg=rtt_avg,
+                target_id=target.db_id
+            )
         counter += 1
-        register_status_to_db(
-            True if router_status else False,
-            router_min,
-            router_max,
-            router_avg,
-            router_id,
-        )
-        register_status_to_db(
-            True if internet_status else False,
-            internet_min,
-            internet_max,
-            internet_avg,
-            internet_id,
-        )
-
         if (counter - 1) % counter_modulo == 0:
             logger.info(
-                f"{counter} pings run. Router: {router_ok_counter/counter * 100}% success (OK: {router_ok_counter} / KO: {router_nok_counter}) | Internet: {internet_ok_counter/counter * 100}% success (OK: {internet_ok_counter} / KO: {internet_nok_counter})"
+                f"{counter} pings run." + " | ".join([f"{target.ip}: {target.ok_counter / counter * 100.0:.2f}% success (OK: {target.ok_counter} / KO: {target.nok_counter})" for target in targets])
             )
         elapsed_time = time.time() - start_time
         if interval_in_s - elapsed_time <= 0:
@@ -173,9 +166,6 @@ def init_db():
         logger.info(f"Executed build DB SQL script from {build_db_path} successfully")
     except FileNotFoundError as e:
         logger.exception(f"Error: SQL file not found: {e}")
-
-
-
 
 if __name__ == "__main__":
     asyncio.run(main())
