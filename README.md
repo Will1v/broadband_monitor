@@ -45,7 +45,9 @@ Using Grafana can be a nice way to visualise the collected stats.
 
 I did this on a Raspberry Pi 4 which runw both Grafana and broadband_monitor to continuously monitor the state of my broadband:
 
-![broadband_monitor_grafana_dashboard](https://github.com/Will1v/broadband_monitor/assets/24796480/3f543fe2-9289-4959-8362-8eedeb9df17f)
+
+![image](https://github.com/user-attachments/assets/e2c0e43a-d5a3-48d0-b8ab-43e39af475e5)
+
 
 # Limitations
 
